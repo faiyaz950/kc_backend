@@ -1,10 +1,10 @@
 <?php
 
 /**
- * KarbalaConnect Backend - BigRock Shared Hosting Entry Point
- * 
- * Place this file in: /home2/hospi5ad/karbalconnect.com/index.php
- * Domain: karbalconnect.com
+ * KarbalaConnect Backend - Hostinger Shared Hosting Entry Point
+ *
+ * Place in: ~/domains/karbalaconnect.in/public_html/index.php
+ * Laravel:  ~/kc_backend
  */
 
 use Illuminate\Foundation\Application;
@@ -12,19 +12,15 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
-// Path to Laravel installation
-// Laravel is in: /home2/hospi5ad/kc_backend
-$laravelPath = '/home2/hospi5ad/kc_backend';
+// Relative path works on Hostinger: /home/u163472436/kc_backend
+$laravelPath = __DIR__.'/../../../kc_backend';
 
-// Determine if the application is in maintenance mode...
 if (file_exists($maintenance = $laravelPath.'/storage/framework/maintenance.php')) {
     require $maintenance;
 }
 
-// Register the Composer autoloader...
 require $laravelPath.'/vendor/autoload.php';
 
-// Bootstrap Laravel and handle the request...
 /** @var Application $app */
 $app = require_once $laravelPath.'/bootstrap/app.php';
 
