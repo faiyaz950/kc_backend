@@ -20,7 +20,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.3"
+          php-version: "8.4"
           tools: composer
           coverage: none
 
@@ -74,16 +74,24 @@ jobs:
             cp "${APP_DIR}/public_html.htaccess" "${WEB_DIR}/.htaccess"
             cp -f "${APP_DIR}/public/robots.txt" "${WEB_DIR}/robots.txt" 2>/dev/null || true
 
+            if [ -x /opt/alt/php84/usr/bin/php ]; then
+              PHP_BIN=/opt/alt/php84/usr/bin/php
+            elif [ -x /opt/alt/php83/usr/bin/php ]; then
+              PHP_BIN=/opt/alt/php83/usr/bin/php
+            else
+              PHP_BIN=php
+            fi
+
             cd "${APP_DIR}"
             chmod -R 775 storage bootstrap/cache
 
             if ! grep -q '^APP_KEY=base64:' .env; then
-              php artisan key:generate --force
+              $PHP_BIN artisan key:generate --force
             fi
 
-            php artisan migrate --force
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
+            $PHP_BIN artisan migrate --force
+            $PHP_BIN artisan config:cache
+            $PHP_BIN artisan route:cache
+            $PHP_BIN artisan view:cache
 
             echo "Deployed: https://karbalaconnect.in/up"

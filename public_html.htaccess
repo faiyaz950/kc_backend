@@ -1,3 +1,8 @@
+# Hostinger: run PHP 8.4 (required by Laravel 13 / Composer lock)
+<IfModule mime_module>
+    AddHandler application/x-httpd-alt-php84___lsphp .php .php8 .phtml
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
@@ -26,15 +31,6 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
-</IfModule>
-
-# PHP Settings for Shared Hosting
-<IfModule mod_php.c>
-    php_value upload_max_filesize 64M
-    php_value post_max_size 64M
-    php_value max_execution_time 300
-    php_value max_input_time 300
-    php_value memory_limit 256M
 </IfModule>
 
 # Security Headers
