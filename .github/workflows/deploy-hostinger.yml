@@ -1,0 +1,89 @@
+name: Deploy kc_backend to Hostinger
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: hostinger-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          tools: composer
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p "${{ secrets.HOSTINGER_SSH_PORT }}" "${{ secrets.HOSTINGER_SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Sync files to Hostinger
+        env:
+          SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+        run: |
+          rsync -az --delete \
+            -e "ssh -p ${SSH_PORT} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=accept-new" \
+            --exclude '.git' \
+            --exclude '.env' \
+            --exclude '.env.*' \
+            --exclude 'node_modules' \
+            --exclude 'tests' \
+            --exclude 'deploy_package' \
+            --exclude 'kc_backend_deploy.zip' \
+            --exclude '.phpunit.cache' \
+            ./ "${SSH_USER}@${SSH_HOST}:~/kc_backend/"
+
+      - name: Publish web root and run Laravel commands
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          script: |
+            set -e
+            APP_DIR="${HOME}/kc_backend"
+            WEB_DIR="${HOME}/domains/karbalaconnect.in/public_html"
+
+            if [ ! -f "${APP_DIR}/.env" ]; then
+              echo "ERROR: ${APP_DIR}/.env not found."
+              echo "Run hostinger-setup-github.sh once on the server (see GITHUB_DEPLOY.md)."
+              exit 1
+            fi
+
+            cp "${APP_DIR}/public_html_index.php" "${WEB_DIR}/index.php"
+            cp "${APP_DIR}/public_html.htaccess" "${WEB_DIR}/.htaccess"
+            cp -f "${APP_DIR}/public/robots.txt" "${WEB_DIR}/robots.txt" 2>/dev/null || true
+
+            cd "${APP_DIR}"
+            chmod -R 775 storage bootstrap/cache
+
+            if ! grep -q '^APP_KEY=base64:' .env; then
+              php artisan key:generate --force
+            fi
+
+            php artisan migrate --force
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            echo "Deployed: https://karbalaconnect.in/up"

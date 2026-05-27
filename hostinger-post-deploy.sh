@@ -12,13 +12,14 @@ fi
 
 cd "${BACKEND_DIR}"
 
-if grep -q "CHANGE_ME_IN_HPANEL" .env 2>/dev/null; then
-    echo "Warning: Update DB_PASSWORD (and DB_* names) in ~/kc_backend/.env before continuing."
-    echo "Press Ctrl+C to abort, or Enter to continue..."
-    read -r _
+if grep -qE 'YOUR_HPANEL_|CHANGE_ME' .env 2>/dev/null; then
+    echo "Error: Update DB_* and secrets in ~/kc_backend/.env first."
+    exit 1
 fi
 
-php artisan key:generate --force
+if ! grep -q '^APP_KEY=base64:' .env; then
+    php artisan key:generate --force
+fi
 chmod -R 775 storage bootstrap/cache
 php artisan migrate --force
 php artisan config:cache
