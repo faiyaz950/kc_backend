@@ -47,7 +47,11 @@ class AuthController extends Controller
             ]);
         }
 
-        $user->tokens()->delete();
+        // Keep max 10 active tokens — delete oldest if exceeded
+        $tokens = $user->tokens()->orderBy('created_at', 'asc')->get();
+        if ($tokens->count() >= 10) {
+            $tokens->take($tokens->count() - 9)->each->delete();
+        }
 
         return response()->json([
             'user' => $user,
