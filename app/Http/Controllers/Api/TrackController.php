@@ -67,7 +67,13 @@ class TrackController extends Controller
             $data['image_url'] = $result['secure_url'];
         }
 
-        return response()->json(Track::create($data)->load('reciter'), 201);
+        $track = Track::create($data);
+        // Sync total_tracks on the reciter
+        if ($track->reciter_id) {
+            \App\Models\Reciter::where('id', $track->reciter_id)
+                ->update(['total_tracks' => \App\Models\Track::where('reciter_id', $track->reciter_id)->count()]);
+        }
+        return response()->json($track->load('reciter'), 201);
     }
 
     public function update(Request $request, $id)
@@ -96,12 +102,25 @@ class TrackController extends Controller
         }
 
         $track->update($data);
+        // Sync total_tracks on the reciter
+        $rid = $data['reciter_id'] ?? $track->reciter_id;
+        if ($rid) {
+            \App\Models\Reciter::where('id', $rid)
+                ->update(['total_tracks' => \App\Models\Track::where('reciter_id', $rid)->count()]);
+        }
         return response()->json($track->load('reciter'));
     }
 
     public function destroy($id)
     {
-        Track::findOrFail($id)->delete();
+        $track = Track::findOrFail($id);
+        $rid = $track->reciter_id;
+        $track->delete();
+        // Sync total_tracks after deletion
+        if ($rid) {
+            \App\Models\Reciter::where('id', $rid)
+                ->update(['total_tracks' => \App\Models\Track::where('reciter_id', $rid)->count()]);
+        }
         return response()->json(['message' => 'Deleted']);
     }
 

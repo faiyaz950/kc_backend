@@ -22,7 +22,7 @@ class ReciterController extends Controller
 
     public function index(Request $request)
     {
-        $query = Reciter::query();
+        $query = Reciter::withCount('tracks');
 
         if ($request->category) {
             $query->whereJsonContains('categories', $request->category);
@@ -33,7 +33,9 @@ class ReciterController extends Controller
 
     public function show($id)
     {
-        return response()->json(Reciter::with('tracks')->findOrFail($id));
+        return response()->json(
+            Reciter::withCount('tracks')->with('tracks')->findOrFail($id)
+        );
     }
 
     public function store(Request $request)
