@@ -43,7 +43,7 @@ class TrackController extends Controller
     {
         $request->validate([
             'title' => 'required|string',
-            'category' => 'required|in:dua,noha,manqabat,naat,ziyarat,kids',
+            'category' => 'required|in:dua,noha,manqabat,naat,ziyarat,kids,tarana',
         ]);
 
         $data = $request->only([
